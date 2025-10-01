@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <title>Project Stage Planning</title>
+  <style>
+    body {
+      background: white;
+      color: black;
+      font-size: 12pt;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 6px;
+      text-align: center;
+    }
+    input[type="text"], input[type="number"], input[type="date"] {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 12pt;
+    }
+    button {
+      margin-top: 15px;
+      font-size: 12pt;
+    }
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .summary-box {
+      border: 1px solid black;
+      padding: 6px 12px;
+      font-size: 12pt;
+      margin-left: 10px;
+      display: inline-block;
+    }
+    #title {
+      font-weight: bold;
+      font-size: 14pt;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="title">Project Schedule Planner MK01</div>
+
+  <div id="header">
+    <div>
+      <label><strong>Plan Name:</strong></label><br>
+      <input type="text" id="planName" style="width: 300px; font-size: 12pt; padding: 6px;" value="Temp">
+    </div>
+    <div>
+      <label><strong>Total Days:</strong></label>
+      <div class="summary-box" id="totalDays">42</div>
+      <label><strong>Weeks:</strong></label>
+      <div class="summary-box" id="totalWeeks">6.0</div>
+      <label><strong>Ref. Working Days:</strong></label>
+      <div class="summary-box" id="workingDays">30</div>
+    </div>
+  </div>
+
+  <table id="stageTable">
+    <thead>
+      <tr>
+        <th>Stage Name</th>
+        <th>Stage Length (days)</th>
+        <th>Start Date</th>
+        <th>Complete Date</th>
+        <th>Add</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"><tr>
+        <td><input type="text" onchange="updateFollowingRows(0)" value="A"></td>
+        <td><input type="number" min="0" value="7" onchange="updateFollowingRows(0)"></td>
+        <td><input type="date" value="2025-12-25"></td>
+        <td><input type="text" readonly="" value="2026-01-01"></td>
+        <td><button onclick="addRowAfter(0)">+</button></td>
+      </tr><tr>
+        <td><input type="text" onchange="updateFollowingRows(1)" value="B"></td>
+        <td><input type="number" min="0" value="7" onchange="updateFollowingRows(1)"></td>
+        <td><input type="date" value="2026-01-02" readonly=""></td>
+        <td><input type="text" readonly="" value="2026-01-09"></td>
+        <td><button onclick="addRowAfter(1)">+</button></td>
+      </tr><tr>
+        <td><input type="text" onchange="updateFollowingRows(2)" value="C"></td>
+        <td><input type="number" min="0" value="7" onchange="updateFollowingRows(2)"></td>
+        <td><input type="date" value="2026-01-10" readonly=""></td>
+        <td><input type="text" readonly="" value="2026-01-17"></td>
+        <td><button onclick="addRowAfter(2)">+</button></td>
+      </tr><tr>
+        <td><input type="text" onchange="updateFollowingRows(3)" value="D"></td>
+        <td><input type="number" min="0" value="7" onchange="updateFollowingRows(3)"></td>
+        <td><input type="date" value="2026-01-18" readonly=""></td>
+        <td><input type="text" readonly="" value="2026-01-25"></td>
+        <td><button onclick="addRowAfter(3)">+</button></td>
+      </tr><tr>
+        <td><input type="text" onchange="updateFollowingRows(4)" value="E"></td>
+        <td><input type="number" min="0" value="7" onchange="updateFollowingRows(4)"></td>
+        <td><input type="date" value="2026-01-26" readonly=""></td>
+        <td><input type="text" readonly="" value="2026-02-02"></td>
+        <td><button onclick="addRowAfter(4)">+</button></td>
+      </tr><tr>
+        <td><input type="text" onchange="updateFollowingRows(5)" value="F"></td>
+        <td><input type="number" min="0" value="7" onchange="updateFollowingRows(5)"></td>
+        <td><input type="date" value="2026-02-03" readonly=""></td>
+        <td><input type="text" readonly="" value="2026-02-10"></td>
+        <td><button onclick="addRowAfter(5)">+</button></td>
+      </tr></tbody>
+  </table>
+
+  <button onclick="saveWithInputs()">Save as HTML</button>
+  <button onclick="exportToPDF()">Export to PDF</button>
+
+  <script>
+    function formatDate(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    function calcCompleteDate(startDateStr, length) {
+      if (!startDateStr || isNaN(length)) return '';
+      const date = new Date(startDateStr);
+      date.setDate(date.getDate() + parseInt(length));
+      return formatDate(date);
+    }
+
+    function countWorkingDays(startDateStr, length) {
+      if (!startDateStr || isNaN(length)) return 0;
+      const startDate = new Date(startDateStr);
+      let workingDays = 0;
+      for (let i = 0; i < length; i++) {
+        const current = new Date(startDate);
+        current.setDate(current.getDate() + i);
+        const day = current.getDay();
+        if (day !== 0 && day !== 6) {
+          workingDays++;
+        }
+      }
+      return workingDays;
+    }
+
+    function addRow(startDate = '', isFirst = false) {
+      const tableBody = document.getElementById('tableBody');
+      const rowIndex = tableBody.rows.length;
+      const row = tableBody.insertRow();
+
+      const isEditableStart = isFirst ? '' : 'readonly';
+
+      row.innerHTML = `
+        <td><input type="text" onchange="updateFollowingRows(${rowIndex})"></td>
+        <td><input type="number" min="0" value="0" onchange="updateFollowingRows(${rowIndex})"></td>
+        <td><input type="date" value="${startDate}" ${isEditableStart}></td>
+        <td><input type="text" readonly></td>
+        <td><button onclick="addRowAfter(${rowIndex})">+</button></td>
+      `;
+
+      updateFollowingRows(rowIndex - 1);
+    }
+
+    function addRowAfter(index) {
+      const currentRow = document.getElementById('tableBody').rows[index];
+      const completeDateInput = currentRow.cells[3].querySelector('input');
+      const nextStart = new Date(completeDateInput.value);
+      nextStart.setDate(nextStart.getDate() + 1);
+      addRow(formatDate(nextStart));
+    }
+
+    function updateFollowingRows(startIndex) {
+      const rows = document.getElementById('tableBody').rows;
+      let totalDays = 0;
+      let startDate, endDate;
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const lengthInput = row.cells[1].querySelector('input');
+        const startDateInput = row.cells[2].querySelector('input');
+        const completeDateInput = row.cells[3].querySelector('input');
+
+        const length = parseInt(lengthInput.value) || 0;
+        lengthInput.value = length;
+
+        if (i > 0) {
+          const prevComplete = rows[i - 1].cells[3].querySelector('input').value;
+          const nextStart = new Date(prevComplete);
+          nextStart.setDate(nextStart.getDate() + 1);
+          startDateInput.value = formatDate(nextStart);
+        }
+
+        const completeDate = calcCompleteDate(startDateInput.value, length);
+        completeDateInput.value = completeDate;
+
+        if (i === 0) startDate = startDateInput.value;
+        if (i === rows.length - 1) endDate = completeDate;
+
+        totalDays += length;
+      }
+
+      document.getElementById('totalDays').textContent = totalDays;
+      document.getElementById('totalWeeks').textContent = (totalDays / 7).toFixed(1);
+      const workingDays = countWorkingDays(startDate, totalDays);
+      document.getElementById('workingDays').textContent = workingDays;
+    }
+
+    function saveWithInputs() {
+      const html = document.documentElement.cloneNode(true);
+      const inputs = html.querySelectorAll("input");
+
+      inputs.forEach(input => {
+        if (input.type === "text" || input.type === "number" || input.type === "date") {
+          input.setAttribute("value", input.value);
+        }
+      });
+
+      const scripts = document.querySelectorAll("script");
+      const scriptContent = Array.from(scripts).map(script => script.innerHTML).join("\n");
+
+      const blob = new Blob(["<!DOCTYPE html>\n" + html.outerHTML], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${document.getElementById('planName').value || 'plan'}.html`;
+      a.click();
+    }
+
+    function exportToPDF() {
+      window.print();
+    }
+
+    window.onload = () => {
+      addRow('', true);
+      for (let i = 1; i < 4; i++) addRow();
+    };
+  </script>
+
+
+
+</body></html>
